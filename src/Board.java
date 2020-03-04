@@ -16,22 +16,24 @@ public class Board extends JFrame implements MouseListener, ActionListener {
     public int[][] possMovesArray;  //0 for not possible, 1 for possible
     public JLabel bScore;
     public JLabel wScore;
-    public JButton easy;
-    public JButton hard;
     public JButton restart;
+    private AI myAI;
+    int difficulty;
+    public Boolean isGameOver;
 
     Board(int s) {
         size = s;
         board = new int[size][size];
         turn = 0;
         possMovesArray = new int [size][size];
-        b_Score = 0;
-        w_Score = 0;
+        b_Score = 2;
+        w_Score = 2;
         bScore = new JLabel(b_Score+"");
         wScore = new JLabel(w_Score+"");
-        easy = new JButton("Easy");
-        hard = new JButton("Hard");
         restart = new JButton("Restart");
+        myAI=new AI();
+        difficulty = 1;
+        isGameOver = false;
         addMouseListener(this);
     }
 
@@ -53,9 +55,10 @@ public class Board extends JFrame implements MouseListener, ActionListener {
         w_Score = b.w_Score;
         bScore = b.bScore;
         wScore = b.wScore;
-        easy = b.easy;
-        hard = b.hard;
         restart = b.restart;
+        myAI=b.myAI;
+        difficulty = b.difficulty;
+        isGameOver = b.isGameOver;
         addMouseListener(this);
     }
 
@@ -69,34 +72,26 @@ public class Board extends JFrame implements MouseListener, ActionListener {
         board[3][4] = 0;
         board[4][3] = 0;
         board[4][4] = 1;
+
+        Frame f = new Frame();
+        Object[] options = {"Easy","Hard"};
+        int n = JOptionPane.showOptionDialog(f,"Choose a difficulty level: ","Othello",JOptionPane.YES_NO_CANCEL_OPTION,JOptionPane.QUESTION_MESSAGE,null,options,options[1]);
+        if (n==0) difficulty=1;
+        else difficulty=3;
     }
 
     public void drawBoard() {
         JFrame frame = new Board(this);
-        frame.setSize(800, 600);
+        frame.setSize(600, 600);
         frame.setLocationRelativeTo(null);
         frame.setBackground(Color.LIGHT_GRAY);
+        frame.setTitle("Othello");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel,BoxLayout.Y_AXIS));
-        panel.setBorder(new EmptyBorder(new Insets(150, 550, 100, 50)));
-//        JButton easy = new JButton("Easy");
-//        JButton hard = new JButton("Hard");
-//        JButton restart = new JButton("Restart");
-        easy = new JButton("Easy");
-        hard = new JButton("Hard");
         restart = new JButton("Restart");
-        easy.addActionListener(this);
-        hard.addActionListener(this);
         restart.addActionListener(this);
-        panel.add(easy);
-        panel.add(Box.createRigidArea(new Dimension(0, 30)));
-        panel.add(hard);
-        panel.add(Box.createRigidArea(new Dimension(0, 30)));
-        panel.add(restart);
         JPanel scoresPanel = new JPanel();
         scoresPanel.setLayout(new BoxLayout(scoresPanel,BoxLayout.X_AXIS));
-        scoresPanel.setBorder(new EmptyBorder(new Insets(520, 215, 40, 150)));
+        scoresPanel.setBorder(new EmptyBorder(new Insets(520, 170, 40, 110)));
         bScore.setText(b_Score+"");
         JLabel black = new JLabel("Black");
         wScore.setText(w_Score+"");
@@ -108,15 +103,23 @@ public class Board extends JFrame implements MouseListener, ActionListener {
         scoresPanel.add(wScore);
         scoresPanel.add(Box.createRigidArea(new Dimension(15, 0)));
         scoresPanel.add(white);
+        scoresPanel.add(Box.createRigidArea(new Dimension(30, 0)));
+        scoresPanel.add(restart);
         JPanel title = new JPanel();
         JLabel othello = new JLabel("OTHELLO");
         title.add(othello);
+        title.setLayout(new BoxLayout(title,BoxLayout.X_AXIS));
+        title.setBorder(new EmptyBorder(new Insets(20,50,500,200)));
         frame.getContentPane().setLayout(new BorderLayout());
-        frame.getContentPane().add (panel,BorderLayout.NORTH);
         frame.getContentPane().add (scoresPanel,BorderLayout.SOUTH);
-        //frame.getContentPane().add (title,BorderLayout.NORTH);
-        frame.setVisible(true);
-        frame.repaint();
+        frame.getContentPane().add (title,BorderLayout.CENTER);
+        if (!isGameOver){
+            frame.setVisible(true);
+            frame.repaint();
+        }
+        else{
+            //
+        }
     }
 
     public void paint(Graphics g) {
@@ -199,102 +202,8 @@ public class Board extends JFrame implements MouseListener, ActionListener {
         }
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
-                if (board[i][j]==0){
-                    //  UP DOWN LEFT RIGHT
-                    if (i-1 > 0)
-                    if (board[i-1][j] == 1) {                 //down
-                        for (int k = i - 2; k > 0; k--) {    //x dec, y same
-                            if (board[k][j] == 0) break;
-                            if (board[k][j] == -1) {
-                                possMovesArray[k][j] = 1;
-                                break;
-                            }
-                        }
-                    }
-                    if (i+1 < 8)
-                    if (board[i+1][j] == 1) {                 //up
-                        for (int k = i + 2; k < 8; k++) {    //x inc, y same
-                            if (board[k][j] == 0) break;
-                            if (board[k][j] == -1) {
-                                possMovesArray[k][j] = 1;
-                                break;
-                            }
-                        }
-                    }
-                    if (j-1 > 0)
-                    if (board[i][j-1] == 1) {                 //left
-                        for (int k = j - 2; k > 0; k--) {    //x same, y dec
-                            if (board[i][k] == 0) break;
-                            if (board[i][k] == -1) {
-                                possMovesArray[i][k] = 1;
-                                break;
-                            }
-                        }
-                    }
-                    if (j+1 < 8)
-                    if (board[i][j+1] == 1) {                 //right
-                        for (int k = j + 2; k < 8; k++) {    //x same, y inc
-                            if (board[i][k] == 0) break;
-                            if (board[i][k] == -1) {
-                                possMovesArray[i][k] = 1;
-                                break;
-                            }
-                        }
-                    }
-                    //  DIAGONALS
-                    if (i+1 < 8 && j+1 < 8)
-                    if (board[i+1][j+1] == 1) {
-                        outerloop1:
-                        for (int m = i + 2;m < 8 ;m++) {    //down right
-                            for (int k = j + 2; k < 8; k++) {   //x inc, y inc
-                                if (board[m][k] == 0) break outerloop1;
-                                if (board[m][k] == -1) {
-                                    possMovesArray[m][k] = 1;
-                                    break outerloop1;
-                                }
-                            }
-                        }
-                    }
-                    if (i-1 > 0 && j+1 < 8)
-                    if (board[i-1][j+1] == 1) {
-                        outerloop2:
-                        for (int m = i - 2;m > 0 ;m--) {    //up right
-                            for (int k = j + 2; k < 8; k++) {   //x dec, y inc
-                                if (board[m][k] == 0) break outerloop2;
-                                if (board[m][k] == -1) {
-                                    possMovesArray[m][k] = 1;
-                                    break outerloop2;
-                                }
-                            }
-                        }
-                    }
-                    if (i+1 < 8 && j-1 > 0)
-                    if (board[i+1][j-1] == 1) {
-                        outerloop3:
-                        for (int m = i + 2;m < 8 ;m++) {    //down left
-                            for (int k = j - 2; k > 0; k--) {   //x inc, y dec
-                                if (board[m][k] == 0) break outerloop3;
-                                if (board[m][k] == -1) {
-                                    possMovesArray[m][k] = 1;
-                                    break outerloop3;
-                                }
-                            }
-                        }
-                    }
-                    if (i-1 > 0 && j-1 > 0)
-                    if (board[i-1][j-1] == 1) {
-                        outerloop4:
-                        for (int m = i - 2;m > 0 ;m--) {    //up left
-                            for (int k = j - 2; k > 0; k--) {   //x dec, y dec
-                                if (board[m][k] == 0) break outerloop4;
-                                if (board[m][k] == -1) {
-                                    possMovesArray[m][k] = 1;
-                                    break outerloop4;
-                                }
-                            }
-                        }
-                    }
-                }
+                if(myAI.validMove(board,i,j,0))
+                    possMovesArray[i][j] = 1;
             }
         }
     }
@@ -304,6 +213,17 @@ public class Board extends JFrame implements MouseListener, ActionListener {
         b_Score = 0;
         w_Score = 0;
         drawBoard();
+    }
+
+    public void gameOver(){
+        isGameOver = true;
+        String winner = " ";
+        if (b_Score>w_Score) winner = "You win.";
+        else if (b_Score<w_Score) winner = "Computer wins.";
+        else winner = "Draw.";    //draw
+        Frame f = new Frame();
+        Object[] options = {"Easy","Hard"};
+        JOptionPane.showMessageDialog(f,"Game over!"+winner);
     }
 
     @Override
@@ -316,14 +236,27 @@ public class Board extends JFrame implements MouseListener, ActionListener {
                 if ((x>=bx && x<=bx+50) && (y>=by && y<=by+50)) {
                     if (possMovesArray[i][j] == 1) {
                         board[i][j] = 0;
+                        myAI.makeMove(board,i,j,0);
+                        b_Score = myAI.score(board,0);
+                        w_Score = myAI.score(board,1);
                         mouseclicked = true;
+                        //AI takes turn here
+                        Point p=myAI.minimaxDecision(board,difficulty);
+                        if (p.x!=-1 || p.y!=-1){
+                            board[p.x][p.y]=1;
+                            myAI.makeMove(board,p.x,p.y,1);
+                        }
+                        else{
+                            gameOver();
+                        }
+                        b_Score = myAI.score(board,0);
+                        w_Score = myAI.score(board,1);
                         repaint();
+                        break;
                     }
                 }
             }
         }
-
-
     }
 
     @Override
