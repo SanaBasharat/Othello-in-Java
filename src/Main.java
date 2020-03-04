@@ -1,5 +1,11 @@
 public class Main {
+    public int bScore;
+    public int wScore;
 
+    Main(){
+        bScore = 0;
+        wScore = 0;
+    }
 
 
     public static void main(String[] args) {
