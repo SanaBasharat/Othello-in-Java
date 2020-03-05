@@ -5,11 +5,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.concurrent.TimeUnit;
 
 public class Board extends JFrame implements MouseListener, ActionListener {
     public int[][] board;       //1 for White, 0 for Black, -1 for Empty
     public int size;
-    public int turn;            //1 for White, 0 for Black
+    //public int turn;            //1 for White, 0 for Black
     private int x, y;
     public int b_Score, w_Score;
     private boolean mouseclicked = false;
@@ -20,11 +21,13 @@ public class Board extends JFrame implements MouseListener, ActionListener {
     private AI myAI;
     int difficulty;
     public Boolean isGameOver;
+    public Boolean bMovesLeft;
+    public Boolean wMovesLeft;
 
     Board(int s) {
         size = s;
         board = new int[size][size];
-        turn = 0;
+        //turn = 0;
         possMovesArray = new int [size][size];
         b_Score = 2;
         w_Score = 2;
@@ -34,6 +37,8 @@ public class Board extends JFrame implements MouseListener, ActionListener {
         myAI=new AI();
         difficulty = 1;
         isGameOver = false;
+        bMovesLeft = true;
+        wMovesLeft = true;
         addMouseListener(this);
     }
 
@@ -47,7 +52,6 @@ public class Board extends JFrame implements MouseListener, ActionListener {
                 possMovesArray[i][j] = b.possMovesArray[i][j];
             }
         }
-        turn = b.turn;
         mouseclicked = b.mouseclicked;
         x = b.x;
         y = b.y;
@@ -59,6 +63,8 @@ public class Board extends JFrame implements MouseListener, ActionListener {
         myAI=b.myAI;
         difficulty = b.difficulty;
         isGameOver = b.isGameOver;
+        bMovesLeft = b.bMovesLeft;
+        wMovesLeft = b.wMovesLeft;
         addMouseListener(this);
     }
 
@@ -154,8 +160,8 @@ public class Board extends JFrame implements MouseListener, ActionListener {
 
         calculatePossibleMoves();
 
-        for (int i = 0, bx = 100; i < size && bx <= 500; i++, bx += 50) {
-            for (int j = 0, by = 100; j < size && by <= 500; j++, by += 50) {
+        for (int i = 0, by = 100; i < size && by <= 500; i++, by += 50) {
+            for (int j = 0, bx = 100; j < size && bx <= 500; j++, bx += 50) {
                 if (board[i][j] == 1) {
                     g.setColor(Color.WHITE);
                     g.fillOval(bx + 5, by + 5, 40, 40);
@@ -170,6 +176,9 @@ public class Board extends JFrame implements MouseListener, ActionListener {
             }
         }
 
+        if (checkBoardFilled()){
+            gameOver();
+        }
         if (mouseclicked) {
             int hundredx = x / 100;
             hundredx *= 100;
@@ -182,14 +191,9 @@ public class Board extends JFrame implements MouseListener, ActionListener {
             }
             if (tensy > 50) {
                 hundredy += 50;
-            }
-            if (turn == 0) {             //DRAW BLACK CIRCLES
-                g.setColor(Color.black);
-                g.fillOval(hundredx + 5, hundredy + 5, 40, 40);
-            } else {                       //DRAW WHITE CIRCLES
-                g.setColor(Color.WHITE);
-                g.fillOval(hundredx + 5, hundredy + 5, 40, 40);
-            }
+            }             //DRAW BLACK CIRCLES
+            g.setColor(Color.black);
+            g.fillOval(hundredx + 5, hundredy + 5, 40, 40);
             mouseclicked = false;
         }
     }
@@ -205,6 +209,18 @@ public class Board extends JFrame implements MouseListener, ActionListener {
                 if(myAI.validMove(board,i,j,0))
                     possMovesArray[i][j] = 1;
             }
+        }
+        bMovesLeft = false;
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                if (possMovesArray[i][j]==1){
+                    bMovesLeft = true;
+                }
+            }
+        }
+        if (bMovesLeft==false){
+            if (checkGameOver()==true) gameOver();
+            else AIPlays();
         }
     }
 
@@ -222,41 +238,75 @@ public class Board extends JFrame implements MouseListener, ActionListener {
         else if (b_Score<w_Score) winner = "Computer wins.";
         else winner = "Draw.";    //draw
         Frame f = new Frame();
-        Object[] options = {"Easy","Hard"};
-        JOptionPane.showMessageDialog(f,"Game over!"+winner);
+        JOptionPane.showMessageDialog(f,"Game over! "+winner);
     }
 
     @Override
     public void mousePressed(MouseEvent e) {
         x = e.getX();
         y = e.getY();
-        System.out.println("Mouse Pressed at X: " + x + " - Y: " + y);
-        for (int i = 0, bx = 100; i < size && bx <= 500; i++, bx += 50) {   //check that mouse is clicked in hint
-            for (int j = 0, by = 100; j < size && by <= 500; j++, by += 50) {
+        for (int i = 0, by = 100; i < size && by <= 500; i++, by += 50) {   //check that mouse is clicked in hint
+            for (int j = 0, bx = 100; j < size && bx <= 500; j++, bx += 50) {
                 if ((x>=bx && x<=bx+50) && (y>=by && y<=by+50)) {
                     if (possMovesArray[i][j] == 1) {
                         board[i][j] = 0;
                         myAI.makeMove(board,i,j,0);
                         b_Score = myAI.score(board,0);
                         w_Score = myAI.score(board,1);
+                        repaint();
                         mouseclicked = true;
                         //AI takes turn here
-                        Point p=myAI.minimaxDecision(board,difficulty);
-                        if (p.x!=-1 || p.y!=-1){
-                            board[p.x][p.y]=1;
-                            myAI.makeMove(board,p.x,p.y,1);
-                        }
-                        else{
-                            gameOver();
-                        }
-                        b_Score = myAI.score(board,0);
-                        w_Score = myAI.score(board,1);
-                        repaint();
+                        AIPlays();
                         break;
                     }
                 }
             }
         }
+    }
+
+    public void AIPlays(){
+        Point p=myAI.minimaxDecision(board,difficulty);
+        if (p.x!=-1 || p.y!=-1){
+            board[p.x][p.y]=1;
+            myAI.makeMove(board,p.x,p.y,1);
+            wMovesLeft = true;
+            calculatePossibleMoves();
+            b_Score = myAI.score(board,0);
+            w_Score = myAI.score(board,1);
+            repaint();
+        }
+        else{
+            b_Score = myAI.score(board,0);
+            w_Score = myAI.score(board,1);
+            repaint();
+            wMovesLeft = false;
+            if (checkGameOver()){
+                gameOver();
+            }
+        }
+    }
+
+    Boolean checkGameOver(){
+        Boolean retval = false;
+        if (!bMovesLeft && !wMovesLeft){
+            retval = true;
+        }
+        if (checkBoardFilled()){
+            retval = true;
+        }
+        return retval;
+    }
+
+    Boolean checkBoardFilled(){
+        Boolean retval = true;
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                if (board[i][j]==-1){
+                    retval = false;
+                }
+            }
+        }
+        return retval;
     }
 
     @Override
@@ -278,14 +328,7 @@ public class Board extends JFrame implements MouseListener, ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         String action = e.getActionCommand();
-        if (action.equals("Easy")) {
-
-        }
-        else if (action.equals("Hard")){
-
-        }
-        else if (action.equals("Restart")) {
-            System.out.println("Pressed");
+        if (action.equals("Restart")) {
             restartGame();
             repaint();
         }
